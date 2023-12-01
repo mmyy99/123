@@ -1,0 +1,84 @@
+#실습에필요한packages를설치
+install.packages("dplyr")
+install.packages("ggplot2")
+
+#실습에필요한packages를라이브러리에등록
+library(dplyr)
+library(ggplot2)
+#CSV형식의파일불러와서subway객체에입력하고구조확인
+str( SUBWAY_MONTH_2022)
+#변수의이상치와결측치확인하고처리
+summary( SUBWAY_MONTH_2022)
+
+#파생변수1.정수형day변수
+SUBWAY_MONTH_2022$day<-substr(SUBWAY_MONTH_2022$Date,7,8)
+
+class(SUBWAY_MONTH_2022$day)
+SUBWAY_MONTH_2022$day<as.integer(SUBWAY_MONTH_2022$day)
+#파생변수1.정수형day변수
+SUBWAY_MONTH_2022$day<-substr(SUBWAY_MONTH_2022$Date,7,8)
+class(SUBWAY_MONTH_2022$day)
+SUBWAY_MONTH_2022$day<-as.integer(SUBWAY_MONTH_2022$day)
+#파생변수2.line변수
+table(SUBWAY_MONTH_2022$Line)
+SUBWAY_MONTH_2022$Line<-ifelse(SUBWAY_MONTH_2022$Line=="9호선2~3단계","9호선",SUBWAY_MONTH_2022$Line)
+#파생변수3.station변수
+table(SUBWAY_MONTH_2022$Station)
+#파생변수4.총승하차승객수total_passenger
+SUBWAY_MONTH_2022$total_passenger<-SUBWAY_MONTH_2022$on_board+SUBWAY_MONTH_2022$getting_off
+#분석데이터최종확인
+str(SUBWAY_MONTH_2022)
+#1.지하철역의하루평균승차/하차승객수
+SUBWAY_MONTH_2022%>%  
+  summarise(on_m=mean(on_board), off_m=mean(getting_off))
+
+max(SUBWAY_MONTH_2022$on_board)
+SUBWAY_MONTH_2022%>% 
+  filter(on_board==94732)%>%  
+  select(Date, Line, Station, on_board)
+
+
+passenger10 <-SUBWAY_MONTH_2022 %>%
+  group_by(Station)%>%
+  summarise(m=mean(total_passenger))%>%
+  arrange(desc(m))%>%
+  head(10)
+head(passenger10, 10)
+
+
+ggplot(data=passenger10, aes(x=reorder(Station, m), y=m))+
+  geom_col()+
+  coord_flip()
+
+
+
+SUBWAY_MONTH_2022 %>%
+  group_by(Date) %>%  
+  summarise(total=sum(total_passenger)) %>%
+  arrange(desc(total)) %>%
+  head(3)
+
+
+
+SUBWAY_MONTH_2022 %>%
+  filter(Line=="1호선") %>%
+  filter(total_passenger==max(total_passenger)) %>%
+  select(Date, Station, on_board, 
+         getting_off, total_passenger)
+
+
+
+line_pct<-SUBWAY_MONTH_2022 %>%
+  group_by(Line) %>% 
+  summarise(total=sum(total_passenger)) %>%
+  mutate(all=sum(total), pct=round(total/all*100,2))
+
+line_pct%>%
+  arrange(desc(pct)) %>%
+  head(3)
+
+
+
+line_pct10 <-line_pct%>%
+  filter(Line%in%c("1호선","2호선","3호선","4호선","5호선","6호선","7호선","8호선","9호선","분당선" ))
+ggplot(data = line_pct10, aes(x=reorder(Line,pct),y=pct))
